@@ -1,75 +1,102 @@
 from trytry import Sudoku_Get as SGet
 from trytry import Cell
-
 import numpy as np
-
+import cv2
 from tensorflow.keras.models import load_model
-# from tensorflow.keras.preprocessing.image import img_to_array
-# import cv2
+from flask import Flask, request, render_template, redirect, url_for
+from werkzeug.utils import secure_filename
+import os
+from io import BytesIO
+import base64
 
-# # 导入模型
-# model_path = './models_first/sudoscan.h5'
-# model = load_model(model_path)
+# Flask setup
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
+app = Flask(__name__, static_url_path='/static')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# if __name__ == "__main__":
-#     image_path = r'D:\NUS_1\PRS\project\example.jpg'
-    
-#     extractor = SGet(image_path)
-#     warped_image = extractor.main(image_path)
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
-# cells = Cell.extract_cells(warped_image)
-# predictions = Cell.predict_cells(cells, model)
-# sudoku_matrix = Cell.assemble_sudoku_matrix(predictions)
-
-# 导入模型
+# Load model
 model_path = './drecv2_model'
 model = load_model(model_path)
 
+# Sudoku functions
 def is_valid(board, row, col, num):
     for i in range(9):
-        if board[row][i] == num or board[i][col] == num:  # Check row and column
+        if board[row][i] == num or board[i][col] == num:
             return False
     
     start_row, start_col = 3 * (row // 3), 3 * (col // 3)
     for i in range(start_row, start_row + 3):
-        for j in range(start_col, start_col + 3):  # Check 3x3 sub-grid
+        for j in range(start_col, start_col + 3):
             if board[i][j] == num:
                 return False
                 
-    return True  # num has not been used yet
-
+    return True
 
 def solve_sudoku(board):
     for row in range(9):
         for col in range(9):
-            if board[row][col] == 0:  # Find an empty spot
-                for num in range(1, 10):  # Try all numbers
+            if board[row][col] == 0:
+                for num in range(1, 10):
                     if is_valid(board, row, col, num):
-                        board[row][col] = num  # Assign num
-                        if solve_sudoku(board):  # Continue with next spot
-                            return True  # Found a solution
-                        board[row][col] = 0  # Undo & try again
-                return False  # No valid number can be placed at this spot
-    return True  # Sudoku is solved
+                        board[row][col] = num
+                        if solve_sudoku(board):
+                            return True
+                        board[row][col] = 0
+                return False
+    return True
 
-if __name__ == "__main__":
-    image_path = r'D:\NUS_1\PRS\project\example.jpg'
-    
+def process_sudoku_from_image_path(image_path):
     extractor = SGet(image_path)
     warped_image, color_warped_image = extractor.main(image_path)
-
 
     cells = Cell.extract_cells(warped_image)
     predictions = Cell.predict_cells(cells, model)
     sudoku_matrix = Cell.assemble_sudoku_matrix(predictions)
     
-if solve_sudoku(sudoku_matrix):
-    for row in sudoku_matrix:
-        print(row)
-    # else:
-    #     print("No soluti on exists.")
-origin = np.array(predictions).reshape(9, 9)
-solution = sudoku_matrix
-extractor.overlay_solution(origin, solution, color_warped_image)    
+    original_sudoku = [row.copy() for row in sudoku_matrix]
+
+    if solve_sudoku(sudoku_matrix):
+        extractor.overlay_solution(original_sudoku, sudoku_matrix, color_warped_image)
+        
+        _, buffer = cv2.imencode('.jpg', color_warped_image)
+        io_buf = BytesIO(buffer)
+        base64_str = base64.b64encode(io_buf.getvalue()).decode('utf-8')
+        
+        return base64_str
+    else:
+        return None
+
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_sudoku_image():
+    if 'file' not in request.files:
+        return "No file part", 400
+    file = request.files['file']
+    if file.filename == '':
+        return "No selected file", 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        solution_base64 = process_sudoku_from_image_path(filepath)
+        
+        if solution_base64:
+            return render_template('solution.html', solution_image=solution_base64)
+        else:
+            return "Unable to solve sudoku or process image", 500
+    else:
+        return "Invalid file type", 400
+
+if __name__ == "__main__":
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    app.run(debug=True)

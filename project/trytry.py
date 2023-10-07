@@ -26,10 +26,6 @@ class Sudoku_Get:
         self.filtered1 = cv2.GaussianBlur(self.gray, (15,15), 0)
         self.filtered = cv2.bilateralFilter(self.filtered1, -1, 11, 5) 
 
-        # cv2.namedWindow("filtered Image",cv2.WINDOW_NORMAL)       
-        # cv2.imshow("filtered Image", self.filtered)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
         return self.filtered
 
     def filtered_binarize(self): #二值化
@@ -48,10 +44,7 @@ class Sudoku_Get:
         
         # 根据底色调整是否反相，如果是白底黑字则执行以下这句代码
         self.binary = np.subtract(255, self.binary_1)
-        cv2.namedWindow("binarized Image",cv2.WINDOW_NORMAL)
-        cv2.imshow("binarized Image", self.binary_1)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+   
         return self.binary
 
     def find_contours(self):# 找轮廓
@@ -144,10 +137,7 @@ class Sudoku_Get:
         
     #     warped_image = extractor.perspective_transform()
     
-    #     cv2.namedWindow("Warped Sudoku Grid",cv2.WINDOW_NORMAL)
-    #     cv2.imshow("Warped Sudoku Grid", warped_image)
-    #     cv2.waitKey(0)
-    #     cv2.destroyAllWindows()
+
     #     return warped_image
     def overlay_solution(self, original_sudoku, solution, original_img):
         cell_width = original_img.shape[1] // 9
@@ -155,7 +145,7 @@ class Sudoku_Get:
         
         for y in range(9):
             for x in range(9):
-                if original_sudoku[y, x] == 0 and solution[y, x] != 0:  # 如果原始数独位置是空白且解决方案中有数字
+                if original_sudoku[y][x] == 0 and solution[y][x] != 0:  # 如果原始数独位置是空白且解决方案中有数字
                     number = solution[y, x]
                     position = ((x * cell_width + cell_width // 2), (y * cell_height + cell_height // 2))
                 
@@ -165,12 +155,7 @@ class Sudoku_Get:
                 
                     cv2.putText(original_img, str(number), position, font, font_scale, color, 2, cv2.LINE_AA)
         
-        # 显示图像
-        cv2.namedWindow("Sudoku Solution",cv2.WINDOW_NORMAL)
-        cv2.imshow("Sudoku Solution", original_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        
+
     def main(self, image_path):
         extractor = Sudoku_Get(image_path)
         extractor.Grayscale_get()
@@ -205,13 +190,8 @@ class Cell:
                 endX = (x + 1) * stepX
                 endY = (y + 1) * stepY
                 cells.append(sudoku_img[startY:endY, startX:endX])
-        # code used for testing
-        # cv2.imshow("Cell 0", cells[0])
-        # cv2.imshow("Cell 2", cells[2])
-        # cv2.imshow("Cell 7", cells[7])
-        # cv2.imshow("Cell 14", cells[17])
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
+
+
     
         return cells
     def predict_cells(cells, model):
@@ -221,11 +201,7 @@ class Cell:
             marginY = int(cell.shape[0] * 0.1)
             trimmed_cell = cell[marginY:-marginY, marginX:-marginX]
 
-            # code used for testing
-            # if index in [0, 18, 53, 73]:
-            #     cv2.imshow(f"Trimmed Cell {index}", trimmed_cell)
-            #     cv2.waitKey(0)
-            #     cv2.destroyAllWindows()
+
 
             white_area = (trimmed_cell == 255).sum()
             total_area = trimmed_cell.shape[0] * trimmed_cell.shape[1]
