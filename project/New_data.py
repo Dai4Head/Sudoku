@@ -3,10 +3,11 @@ from trytry import Cell
 import numpy as np
 import cv2
 from tensorflow.keras.models import load_model
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 import os
 from io import BytesIO
+from plain_solution.plain import solve_sudoku
 import base64
 
 # Flask setup
@@ -20,7 +21,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Load model
-model_path = './drecv2_model'
+#model_path = './drecv2_model'
+model_path = os.path.join('.', 'drecv2_model')
 model = load_model(model_path)
 
 # Sudoku functions
@@ -73,7 +75,10 @@ def process_sudoku_from_image_path(image_path):
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    sudoker_img_url = url_for('static', filename='Sudoker.jpg')
+    holdplace_img_url = url_for('static', filename='holdplace.png')
+    return render_template('mainpage.html', sudoker_img_url=sudoker_img_url, holdplace_img_url=holdplace_img_url)
+
 
 @app.route('/upload', methods=['POST'])
 def upload_sudoku_image():
@@ -95,7 +100,32 @@ def upload_sudoku_image():
             return "Unable to solve sudoku or process image", 500
     else:
         return "Invalid file type", 400
-
+@app.route('/rotate_image', methods=['POST'])#虽然叫做旋转图片但是实际上不是旋转
+def rotate_image():
+    file = request.files['image']
+    if file.filename == '':
+        return "No selected file", 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        solution_base64 = process_sudoku_from_image_path(filepath)
+        
+        if solution_base64:
+            return jsonify({'rotated_image': solution_base64})
+        else:
+            return "Unable to solve sudoku or process image", 500
+        
+@app.route('/solve', methods=['POST'])
+def solve():
+    data = request.json
+    board = data["board"]
+    if solve_sudoku(board):
+        return jsonify({"result": "success", "board": board})
+    else:
+        return jsonify({"result": "failure", "message": "Unable to solve sudoku"})
+    
 if __name__ == "__main__":
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
