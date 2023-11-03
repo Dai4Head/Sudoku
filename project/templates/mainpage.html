@@ -4,22 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数独求解器</title>
+    <title>SudokuPix</title>
     <style>
-        /* ...其他样式保持不变... */
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Times New Roman', Times, serif;
             background-color: #f7f7f7;
             margin: 0;
             padding: 0;
+            background-image: url("{{ background_img_url }}");
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
         }
         header {
-            background-color: #333;
+            background-color: rgba(255, 255, 255, 0.5); 
+            /* background-color: #333; */
             color: white;
             padding: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            z-index: 10;
         }
         header img {
             width: 90px;
@@ -34,20 +47,20 @@
             text-decoration: none;
             margin-right: 20px;
         }
-        /* 更新导航链接样式 */
+        
         nav a {
             display: inline-block;
             background-color: #007bff;
             padding: 5px 15px;
             border-radius: 20px;
-            transition: all 0.3s ease; /* 添加过渡效果 */
+            transition: all 0.3s ease; /* 过渡效果 */
         }
 
         nav a:hover {
             background-color: #0056b3;
             transform: scale(1.05); /* 鼠标悬停时轻微放大 */
             text-decoration: none;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* 阴影效果 */
         }
         .container {
             display: flex;
@@ -84,6 +97,7 @@
             cursor: pointer;
             border-radius: 5px;
             margin-bottom: 20px;
+            margin-left: 10px;
         }
         #file-input-label:hover {
             background-color: #0056b3;
@@ -93,7 +107,7 @@
         }
         #button-container {
             display: flex;
-            align-items: flex-start; /* 调整按钮的垂直对齐方式 */
+            align-items: flex-start; /* 按钮的垂直对齐方式 */
         }
         #solve-button {
             display: none;
@@ -103,7 +117,7 @@
             padding: 10px 20px;
             cursor: pointer;
             border-radius: 5px;
-            margin-left: 10px; /* 添加左边距以与选择文件按钮对齐 */
+            margin-left: 10px; /*左边距以与选择文件按钮对齐*/
         }
         #solve-button:hover {
             background-color: #0056b3;
@@ -125,7 +139,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* 为手动输入的容器添加样式 */
+        
         .input-container {
             display: none;
             flex-direction: column;
@@ -133,9 +147,12 @@
         }
 
         #sudoku-grid {
+            
             display: grid;
+            gap: 2px;
+            /* 默认9x9的数独 */
             grid-template-columns: repeat(9, 1fr);
-            gap: 5px;
+            grid-template-rows: repeat(9, 1fr);
         }
 
         .sudoku-cell {
@@ -145,15 +162,103 @@
             font-size: 18px;
             border: 1px solid #ccc;
         }
+        /* Normal 样式 */
+        .normal-sudoku .sudoku-cell {
+            border: 1px solid #ccc;
+        }
 
+        .normal-sudoku .border-right {
+            border-right: 3px solid black;
+        }
 
+        .normal-sudoku .border-bottom {
+            border-bottom: 3px solid black;
+        }
 
+        /* 6x6的迷你数独样式 */
+        #sudoku-grid.mini-sudoku {
+            display: grid;
+            gap:    2px;
+            grid-template-columns: repeat(6, 1fr);
+            
+            grid-template-rows: repeat(6, 1fr);
+        }
+        .mini-sudoku .sudoku-cell {
+            border: 1px solid #ccc; 
+        }
 
+        .mini-sudoku .border-right {
+            border-right: 3px solid black;
+        }
+
+        .mini-sudoku .border-bottom {
+            border-bottom: 3px solid black;
+        }
+
+        /* 16x16的巨型数独样式 */
+        #sudoku-grid.giant-sudoku {
+            grid-template-columns: repeat(16, 1fr);
+            grid-template-rows: repeat(16, 1fr);
+        }
+        .super-sudoku .sudoku-cell {
+            border: 1px solid #ccc;
+        }
+
+        .super-sudoku .border-right {
+            border-right: 3px solid black;
+        }
+
+        .super-sudoku .border-bottom {
+            border-bottom: 3px solid black;
+        }
         
 
-        /* 更新选择文件和数独求解按钮的样式 */
+
+        #solve-button, #file-input-label {
+            font-size: 16px; 
+        }
+
+        .common-button, #file-input-label, #solve-button, #solve-manual-button, .btn {
+            /* 1. 渐变背景 */
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            
+            /* 2. 文本阴影 */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            
+            /* 3. 轻微的外边框和柔和的阴影 */
+            border: 1px solid rgba(0, 76, 255, 0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .common-button:hover, #file-input-label:hover, #solve-button:hover, #solve-manual-button:hover, .btn:hover {
+            /* 1. 调整渐变背景的方向和颜色 */
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            
+            /* 2. 调整文本阴影 */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            
+            /* 3. 调整边框与阴影 */
+            border: 1px solid rgba(0, 76, 255, 0.7);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            
+            /* 4. 添加过渡效果 */
+            transition: all 0.3s ease;
+        }
+
+        .common-button {
+            background-color: blue;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif; /* 字体 */
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* 选择文件和数独求解按钮 */
         #file-input-label, #solve-button, #solve-manual-button {
-            transition: all 0.3s ease; /* 添加过渡效果 */
+            transition: all 0.3s ease;
         }
 
         #file-input-label:hover, #solve-button:hover, #solve-manual-button:hover {
@@ -162,33 +267,33 @@
         }
 
         .btn {
-            background-color: #4CAF50; /* Green background */
+            background-color: #4CAF50; 
             border: none;
-            color: white; /* White text */
-            padding: 10px 20px; /* Padding */
+            color: white;
+            padding: 10px 20px;
             text-align: center;
             text-decoration: none;
             display: inline-block;
             font-size: 16px;
             margin: 4px 2px;
-            cursor: pointer; /* Change cursor to hand pointer when over button */
-            border-radius: 8px; /* Rounded corners */
-            transition: 0.3s; /* Smooth transition for hover effect */
+            cursor: pointer; 
+            border-radius: 8px;
+            transition: 0.3s;
 
-            width: 140px; /* Set a fixed width */
-            height: 45px; /* Set a fixed height */
+            width: 140px; 
+            height: 45px;
         }
 
         .btn:hover {
-            background-color: #45a049; /* Slightly darker green on hover */
+            background-color: #45a049;
         }
 
         #botton-container2 {
             display: flex;
-            justify-content: center; /* Center the buttons horizontally */
-            align-items: center;     /* Center the buttons vertically */
-            gap: 10px;               /* Spacing between buttons */
-            height: 50px;            /* Set a fixed height for the container */
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            height: 50px;
             line-height: 45px;  /*与按钮高度相同*/
             margin-bottom: 20px;
         }
@@ -196,7 +301,7 @@
         #resultImage {
             width: 400px;
             height: 300px;
-            /* 如果您不希望图片被拉伸或压缩，您可以添加以下属性 */
+            /* 不希望图片被拉伸或压缩 */
             object-fit: contain;
         }
         .hidden {
@@ -204,12 +309,12 @@
         }
 
         .loading-message {
-            font-size: 24px;          /* 增大字体大小 */
-            color: #f44336;          /* 使用红色系的颜色 */
-            font-family: 'Arial', sans-serif; /* 使用Arial字体，当然，这是一个示例，您可以选择其他的 */
-            font-weight: bold;       /* 字体加粗 */
-            text-shadow: 2px 2px 4px #aaa;  /* 添加文字阴影效果 */
-            animation: blinker 1.5s linear infinite; /* 使用动画效果 */
+            font-size: 24px;
+            color: #f44336;
+            font-family: 'Arial', sans-serif; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 4px #aaa; 
+            animation: blinker 1.5s linear infinite; /* 动画效果 */
         }
 
         @keyframes blinker {
@@ -226,71 +331,144 @@
             100% { color: #f44336; text-shadow: 2px 2px 4px #aaa; }
         }
 
+      
+
+        #sudoku-type-selector {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif; 
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #f5f5f5;
+            
+        }
+
+
+        #sudoku-type-selector option {
+            padding: 4px 8px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+
+        #manual-sudoku-type-selector {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #f5f5f5;
+            margin-bottom:10px;
+        }
+
+
+        #manual-sudoku-type-selector option {
+            padding: 4px 8px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        /* 摄像头按钮 */
+        #camera-button {
+            background-image: url('static/Camera.jpg');
+            background-size: cover;
+            border: none;
+            cursor: pointer;
+            width: 15px;
+            height: 30px;
+            margin-left: 10px;
+            background-size: 100% 100%;
+        }
+
+        #file-input {
+            display: none;
+        }
+
     </style>
 </head>
 
 <body>
-    <!-- ...头部保持不变... -->
     <header>
         <img src="{{ sudoker_img_url }}" alt="Logo">
         <nav>
-            <a href="#" id="camera-solve">拍照解</a>
-            <a href="#" id="manual-input">手动输入</a>
+            <a href="#" id="camera-solve">Image Solve</a>
+            <a href="#" id="manual-input">Manual Input</a>
         </nav>
 
     </header>
-    <!-- 拍照解的容器 -->
+    <!-- 拍照解部分 -->
     <div class="container" id="photo-container">
         <div class="left">
-            <h2>拍照解数独</h2>
+            <h2>Solve by taking photos</h2>
             <div id="button-container">
                 <select id="sudoku-type-selector">
-                    <option value="normal" selected>正常数独</option>
-                    <option value="mini">迷你数独</option>
-                    <option value="giant">超级数独</option>
+                    <option value="normal" selected>Normal Sudoku</option>
+                    <option value="mini">Mini Sudoku</option>
+                    <option value="giant">Super Sudoku</option>
+                    <option value="rainbow">Rainbow Sudoku</option>
                 </select>
-                <label for="file-input" id="file-input-label">选择文件</label>
+                <label for="file-input" id="file-input-label" class="common-button">
+                    Select File
+                </label>
                 <input type="file" accept="image/*" id="file-input">
-                <button id="solve-button">数独求解</button>
+                <button id="solve-button" class="common-button">Solve</button>
                 <div id="loading-spinner"></div>
             </div>
-            <!-- <div id="loading-spinner"></div> -->
-            <div id="info-message">请选择要求解的文件</div>
-            <img src="{{ holdplace_img_url }}" id="image-preview" alt="上传的图片">
+            <!-- 摄像头图标按钮 -->
+            <button id="camera-button" class="common-button">
+                <i class="fas fa-camera"></i>
+            </button>
+            <input type="file" accept="image/*" id="file-input" style="display: none;">
+            <div id="info-message">Please select Sudoku file</div>
+            <img src="{{ holdplace_img_url }}" id="image-preview" alt="image preview">
         </div>
         <div class="right">
-            <h2>求解结果</h2>
+            <h2>Solution Results</h2>
             <div id="result-container">
-                <!-- 添加“求解中...”的HTML代码 -->
                 <div id="solvingMessage" class="hidden">
-                    <span class="loading-message">求解中<span class="dots">...</span></span>
+                    <span class="loading-message">Loading<span class="dots">...</span></span>
                 </div>
-                <img src="{{ holdplace_img_url }}" id="result-image" alt="求解结果">
+                <img src="{{ holdplace_img_url }}" id="result-image" alt="result image">
             </div>
         </div>
     </div>
 
     <!-- 手动输入的容器 -->
     <div class="container input-container" id="input-container">
-        <h2>手动输入数独</h2>
+        <h2>Manual Input</h2>
+        <div id="type-selector-container">
+            <select id="manual-sudoku-type-selector">
+                <option value="normal" selected>Normal Sudoku</option>
+                <option value="mini">Mini Sudoku</option>
+                <option value="giant">Super Sudoku</option>
+            </select>
+        </div>
         <div id="sudoku-grid">
-            <!-- 使用JS动态创建9x9的矩阵 -->
+            <!-- 使用JS动态创建输入矩阵 -->
         </div>
         <div id="botton-container2">
-            <button id="solve-manual-button" class="btn">数独求解</button>
-            <button id="resetMatrix" class="btn">重置矩阵</button>
-
+            <button id="solve-manual-button" class="btn">Solve</button>
+            <button id="resetMatrix" class="btn">Reset Matrix</button>
         </div>
-        
-        <div id="manual-result">求解结果将在此显示</div>
+
+        <div id="manual-result">The solution results will be displayed here</div>
     </div>
 
     <script>
-        // ...原有的切换逻辑保持不变...
+
         const photoContainer = document.getElementById('photo-container');
         const inputContainer = document.getElementById('input-container');
         const cameraSolveLink = document.getElementById('camera-solve');
         const manualInputLink = document.getElementById('manual-input');
+
+
+
 
         cameraSolveLink.addEventListener('click', function (e) {
             e.preventDefault(); // 防止链接默认行为
@@ -303,25 +481,87 @@
             photoContainer.style.display = 'none';
             inputContainer.style.display = 'flex';
         });
-        // 动态创建9x9的输入矩阵
+
+
+        // 动态创建数独的输入矩阵
         const sudokuGrid = document.getElementById('sudoku-grid');
-        for (let i = 0; i < 81; i++) {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.maxLength = 1;
-            input.className = 'sudoku-cell';
-            sudokuGrid.appendChild(input);
+        const inputSudokuTypeSelector = document.getElementById('manual-sudoku-type-selector');
+        const createGrid = (size) => {
+            sudokuGrid.innerHTML = '';
+            sudokuGrid.classList.remove('mini-sudoku', 'normal-sudoku', 'super-sudoku');
+
+            if (size === 6) {
+                sudokuGrid.classList.add('mini-sudoku');
+            } else if (size === 9) {
+                sudokuGrid.classList.add('normal-sudoku');
+            } else if (size === 16) {
+                sudokuGrid.classList.add('super-sudoku');
+            }
+
+            sudokuGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    input.className = 'sudoku-cell';
+
+                    // Mini
+                    if (size === 6 && (j + 1) % 3 === 0 && j !== size - 1) {
+                        input.classList.add('border-right');
+                    }
+                    if (size === 6 && (i + 1) % 2 === 0 && i !== size - 1) {
+                        input.classList.add('border-bottom');
+                    }
+
+                    // Normal
+                    if (size === 9 && (j + 1) % 3 === 0 && j !== size - 1) {
+                        input.classList.add('border-right');
+                    }
+                    if (size === 9 && (i + 1) % 3 === 0 && i !== size - 1) {
+                        input.classList.add('border-bottom');
+                    }
+
+                    // Super
+                    if (size === 16 && (j + 1) % 4 === 0 && j !== size - 1) {
+                        input.classList.add('border-right');
+                    }
+                    if (size === 16 && (i + 1) % 4 === 0 && i !== size - 1) {
+                        input.classList.add('border-bottom');
+                    }
+
+                    sudokuGrid.appendChild(input);
+                }
+            }
         }
 
-        // 为手动求解按钮添加事件
+
+        createGrid(9); // 默认为9x9
+
+        inputSudokuTypeSelector.addEventListener('change', function () {
+            const type = inputSudokuTypeSelector.value;
+            if (type === 'normal') {
+                createGrid(9);
+            } else if (type === 'mini') {
+                createGrid(6);
+            } else if (type === 'giant') {
+                createGrid(16);
+            }
+        });
+
+
+        // 适应不同大小的矩阵
         const solveManualButton = document.getElementById('solve-manual-button');
-        const manualResult = document.getElementById('manual-result');
-        solveManualButton.addEventListener('click', function() {
+        solveManualButton.addEventListener('click', function () {
+            const type = inputSudokuTypeSelector.value;
+            const size = (type === 'normal') ? 9 : (type === 'mini') ? 6 : 16;
+
             const board = [];
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < size; i++) {
                 const row = [];
-                for (let j = 0; j < 9; j++) {
-                    const val = parseInt(sudokuGrid.children[i * 9 + j].value);
+                for (let j = 0; j < size; j++) {
+                    const val = parseInt(sudokuGrid.children[i * size + j].value);
                     row.push(isNaN(val) ? 0 : val);
                 }
                 board.push(row);
@@ -332,26 +572,26 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({board: board})
+                body: JSON.stringify({ board: board })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === 'success') {
-                    const solvedBoard = data.board;
-                    for (let i = 0; i < 9; i++) {
-                        for (let j = 0; j < 9; j++) {
-                            sudokuGrid.children[i * 9 + j].value = solvedBoard[i][j];
+                .then(response => response.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        const solvedBoard = data.board;
+                        for (let i = 0; i < size; i++) {
+                            for (let j = 0; j < size; j++) {
+                                sudokuGrid.children[i * size + j].value = solvedBoard[i][j];
+                            }
                         }
+                    } else {
+                        alert("Unable to solve sudoku");
                     }
-                } else {
-                    alert("Unable to solve sudoku");
-                }
-            })
-            .catch(error => {
-                console.error(error);
-            });
+                })
+                .catch(error => {
+                    console.error(error);
+                });
         });
-        // ...其他原有的代码保持不变...
+
     </script>
     <script>
         const imageInput = document.getElementById('file-input');
@@ -363,17 +603,17 @@
         const resultContainer = document.getElementById('result-container');
         const buttonContainer = document.getElementById('button-container');
         const solvingMessage = document.getElementById('solvingMessage');
-        imageInput.addEventListener('change', function() {
-            
+        imageInput.addEventListener('change', function () {
+
             const selectedFile = imageInput.files[0];
-            
+
 
             if (selectedFile) {
                 const img = new Image();
                 img.src = URL.createObjectURL(selectedFile);
-                img.onload = function() {
-                    const maxWidth = 400; // 设置最大宽度
-                    const maxHeight = 300; // 设置最大高度
+                img.onload = function () {
+                    const maxWidth = 400; // 最大宽度
+                    const maxHeight = 300; // 最大高度
                     let width = img.width;
                     let height = img.height;
                     if (width > maxWidth || height > maxHeight) {
@@ -384,14 +624,13 @@
                     imagePreview.style.maxWidth = width + 'px';
                     imagePreview.style.maxHeight = height + 'px';
                     imagePreview.src = img.src;
-                    solveButton.style.display = 'block';
-                    infoMessage.innerText = '点击求解按钮求解';
+                    solveButton.style.display = 'inline-block';
+                    infoMessage.innerText = 'Click the solve button to solve';
                 };
             }
         });
-        
-        // 在显示返回的图片前，确保其大小适应容器
-        resultImage.onload = function() {
+
+        resultImage.onload = function () {
             const maxWidth = 400; // 设置最大宽度
             const maxHeight = 300; // 设置最大高度
             let width = resultImage.width;
@@ -405,21 +644,21 @@
             resultImage.style.height = height + 'px';
         };
 
-        solveButton.addEventListener('click', function() {
+        solveButton.addEventListener('click', function () {
             const selectedFile = imageInput.files[0];
 
             const selectedSudokuType = document.getElementById('sudoku-type-selector').value; // 获取所选的数独类型
 
             if (selectedFile) {
                 loadingSpinner.style.display = 'inline-block';
-                infoMessage.innerText = '正在求解...';
+                infoMessage.innerText = 'Solving...';
 
-                // 显示“求解中...”的消息
+                // 显示“Loading”的消息
                 solvingMessage.classList.remove('hidden');
 
                 // 清除图片的src，确保其隐藏
                 resultImage.src = '';
-                resultImage.style.display = 'none'; // 添加这行，使图片元素隐藏
+                resultImage.style.display = 'none';
                 resultImage.style.width = "";
                 resultImage.style.height = "";
 
@@ -431,46 +670,124 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.json())
-                .then(data => {
-                    loadingSpinner.style.display = 'none';
-                    
-                    // 结果返回后隐藏“求解中...”的消息
-                    solvingMessage.classList.add('hidden');
-                    
-                    if (data.rotated_image) {
-                        infoMessage.innerText = '求解完毕';
-                        resultImage.src = 'data:image/jpeg;base64,' + data.rotated_image;
-                        resultImage.style.display = 'block'; // 显示图片
-                    } else {
-                        infoMessage.innerText = '未能求解，请重试';
-                    }
-                })
-                .catch(error => {
-                    loadingSpinner.style.display = 'none';
-                    infoMessage.innerText = '发生错误，请重试';
-                    console.error(error);
-                    
-                    // 若有错误，同样隐藏“求解中...”的消息
-                    solvingMessage.classList.add('hidden');
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingSpinner.style.display = 'none';
+
+                        // 结果返回后隐藏“loading”的消息
+                        solvingMessage.classList.add('hidden');
+
+                        if (data.rotated_image) {
+                            infoMessage.innerText = 'Solved';
+                            resultImage.src = 'data:image/jpeg;base64,' + data.rotated_image;
+                            resultImage.style.display = 'block'; // 显示图片
+                        } else {
+                            infoMessage.innerText = 'Type Error. Please try again';
+                        }
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';
+                        infoMessage.innerText = 'Type Error. Please try again';
+                        console.error(error);
+
+                        // 若有错误，同样隐藏“loading”的消息
+                        solvingMessage.classList.add('hidden');
+                    });
             } else {
-                infoMessage.innerText = '请选择要求解的文件';
+                infoMessage.innerText = 'Please select the file.';
             }
         });
 
+        // 用于存储当前活跃的媒体流
+        let activeStream = null;
+        // 关闭摄像头并清除视频元素的函数
+        function closeCameraAndPreview() {
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+                activeStream = null;
+            }
+            const videoPreview = document.getElementById('video-preview');
+            if (videoPreview) {
+                videoPreview.remove();
+            }
+        }
 
+        // 显示图片预览的函数
+        function showImagePreview(imageSource) {
+            const imagePreview = document.getElementById('image-preview');
+            imagePreview.src = imageSource;
+            imagePreview.style.display = 'block';
+        }
 
+        // 更改文件输入时的处理函数
+        document.getElementById('file-input').addEventListener('change', function (event) {
+            closeCameraAndPreview(); // 关闭摄像头和视频预览
+
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                showImagePreview(e.target.result); // 显示选择的图片
+                document.getElementById('solve-button').style.display = 'inline-block'; // 显示 Solve 按钮
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 处理摄像头拍照事件
+        document.getElementById('camera-button').addEventListener('click', async () => {
+            try {
+                // 关闭之前的摄像头
+                closeCameraAndPreview();
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                activeStream = stream; // 存储当前视频流
+
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+                video.setAttribute('id', 'video-preview');
+
+                const imagePreviewContainer = document.getElementById('image-preview').parentElement;
+                imagePreviewContainer.insertBefore(video, document.getElementById('image-preview'));
+
+                // 创建并显示拍照按钮
+                const captureButton = document.createElement('button');
+                captureButton.innerText = 'Capture';
+                captureButton.classList.add('common-button'); // 应用 common-button 样式
+                captureButton.setAttribute('id', 'capture-button');
+                captureButton.addEventListener('click', () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+
+                    const photoDataUrl = canvas.toDataURL('image/png');
+                    showImagePreview(photoDataUrl); // 显示拍摄的照片
+                    closeCameraAndPreview(); // 关闭摄像头和视频预览
+
+                    document.getElementById('solve-button').style.display = 'inline-block'; // 显示 Solve 按钮
+                    captureButton.remove(); // 移除拍照按钮
+                });
+
+                imagePreviewContainer.appendChild(captureButton);
+                document.getElementById('solve-button').style.display = 'inline-block'; // 显示 Solve 按钮
+            } catch (error) {
+                console.error('Error accessing the camera', error);
+            }
+        });
     </script>
     <script>
         const resetMatrixButton = document.getElementById("resetMatrix");
-        resetMatrixButton.addEventListener('click', function() {
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    sudokuGrid.children[i * 9 + j].value = "";
+        resetMatrixButton.addEventListener('click', function () {
+            const type = inputSudokuTypeSelector.value;
+            const size = (type === 'normal') ? 9 : (type === 'mini') ? 6 : 16;
+
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    sudokuGrid.children[i * size + j].value = "";
                 }
             }
         });
+
 
     </script>
 

@@ -4,7 +4,10 @@ from Sudoku_mini import Sudoku_Get as MiniSGet
 from Sudoku_mini import Cell as MiniCell
 from Sudoku_giant import Sudoku_Get as GiantGet
 from Sudoku_giant import Cell as GiantCell
+from Sudoku_rainbow import RainbowCell
 from sudoku_solver import solve_sudoku
+from sudoku_solver_rainbow import solve_sudoku_rainbow
+
 import numpy as np
 import cv2
 from tensorflow.keras.models import load_model
@@ -24,8 +27,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
-
 def process_sudoku_from_image_path(image_path, sudoku_type):
     #两个模型 一个能识别数字和字母 一个识别数字
     if(sudoku_type == "giant"):
@@ -38,6 +39,7 @@ def process_sudoku_from_image_path(image_path, sudoku_type):
         model = load_model(model_path)
     try:
         if sudoku_type == "normal":
+            #图像处理->提取单元格->预测->生成数独矩阵
             extractor = NormalGet(image_path)
             warped_image, color_warped_image = extractor.main(image_path)
             cells = NormalCell.extract_cells(warped_image)
@@ -55,6 +57,18 @@ def process_sudoku_from_image_path(image_path, sudoku_type):
             cells = GiantCell.extract_cells(warped_image)
             predictions = GiantCell.predict_cells(cells, model)
             sudoku_matrix = GiantCell.assemble_sudoku_matrix(predictions)
+        elif sudoku_type == "rainbow":
+            #识别数字矩阵只需调用normal的类
+            extractor = NormalGet(image_path)
+            warped_image, color_warped_image = extractor.main(image_path)
+            cells = NormalCell.extract_cells(warped_image)
+            predictions = NormalCell.predict_cells(cells, model)
+            sudoku_matrix = NormalCell.assemble_sudoku_matrix(predictions)
+            #获取颜色矩阵
+            color_cells = RainbowCell.extract_cells_rainbow(image_path)
+            color_matrix = RainbowCell.detect_cells_color(color_cells)
+            for row in color_matrix:
+                print(row)
         else:
             raise ValueError("Invalid sudoku type")
             
@@ -63,21 +77,24 @@ def process_sudoku_from_image_path(image_path, sudoku_type):
         print("Original Sudoku:")
         for row in original_sudoku:
             print(row)
-        if solve_sudoku(sudoku_matrix):
+        if sudoku_type == "rainbow": #如果是rainbow，则调用单独的solver
+            if solve_sudoku_rainbow(sudoku_matrix, color_matrix):
+                for row in sudoku_matrix:
+                    print(row)
+        elif solve_sudoku(sudoku_matrix):
             print("Solved Sudoku:")
             for row in sudoku_matrix:
                 print(row)
-
-            extractor.overlay_solution(original_sudoku, sudoku_matrix, color_warped_image)
-            
-            _, buffer = cv2.imencode('.jpg', color_warped_image)
-            io_buf = BytesIO(buffer)
-            base64_str = base64.b64encode(io_buf.getvalue()).decode('utf-8')
-            
-            return base64_str
         else:
             print("Unable to solve Sudoku.")
             return None
+        
+        extractor.overlay_solution(original_sudoku, sudoku_matrix, color_warped_image)
+        _, buffer = cv2.imencode('.jpg', color_warped_image)
+        io_buf = BytesIO(buffer)
+        base64_str = base64.b64encode(io_buf.getvalue()).decode('utf-8')
+        return base64_str
+
     except Exception as e:
         print("Error in process_sudoku_from_image_path:")
         print(f"Message: {e}")
@@ -90,7 +107,8 @@ def process_sudoku_from_image_path(image_path, sudoku_type):
 def index():
     sudoker_img_url = url_for('static', filename='Sudoker.jpg')
     holdplace_img_url = url_for('static', filename='holdplace.png')
-    return render_template('mainpage.html', sudoker_img_url=sudoker_img_url, holdplace_img_url=holdplace_img_url)
+    background_img_url = url_for('static', filename='train.png')
+    return render_template('mainpage.html', sudoker_img_url=sudoker_img_url, holdplace_img_url=holdplace_img_url, background_img_url=background_img_url)
 
 
 @app.route('/upload', methods=['POST'])
@@ -144,9 +162,13 @@ def rotate_image():
 def solve():
     data = request.json
     board = data["board"]
-    
+    for row in board:
+        print(row)
 
     if solve_sudoku(board):
+        print("solved")
+        for row in board:
+            print(row)
         return jsonify({"result": "success", "board": board})
     else:
         return jsonify({"result": "failure", "message": "Unable to solve sudoku"})

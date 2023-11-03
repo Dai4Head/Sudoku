@@ -30,7 +30,7 @@ class Sudoku_Get:
         if img_type == "electronic":
             self.filtered = self.gray
         else:
-            self.filtered1 = cv2.GaussianBlur(self.gray, (15,15), 0)
+            self.filtered1 = cv2.GaussianBlur(self.gray, (5,5), 0)
             self.filtered = cv2.bilateralFilter(self.filtered1, -1, 11, 5)
 
         return self.filtered
@@ -48,7 +48,6 @@ class Sudoku_Get:
         # closing
         self.kernel_c = np.ones((9,9), np.uint8)
         self.closing = cv2.morphologyEx(self.opening, cv2.MORPH_CLOSE, self.kernel_c)
-        
         # 根据底色调整是否反相，如果是白底黑字则执行以下这句代码
         self.binary = np.subtract(255, self.binary_1)
    
@@ -183,7 +182,6 @@ class Sudoku_Get:
         extractor.filtered_binarize()
         extractor.find_contours()
         warped_image = extractor.perspective_transform()
-        
         # 也变换彩色图像
         color_warped_image = extractor.perspective_transform_color(extractor.image)
         
@@ -202,7 +200,6 @@ class Cell:
         stepX = sudoku_img.shape[1] // 9
         stepY = sudoku_img.shape[0] // 9
         cells = []
-
         for y in range(0, 9):
             for x in range(0, 9):
                 startX = x * stepX
@@ -210,9 +207,6 @@ class Cell:
                 endX = (x + 1) * stepX
                 endY = (y + 1) * stepY
                 cells.append(sudoku_img[startY:endY, startX:endX])
-
-
-    
         return cells
     def predict_cells(cells, model):
         predictions = []
@@ -220,12 +214,8 @@ class Cell:
             marginX = int(cell.shape[1] * 0.15)
             marginY = int(cell.shape[0] * 0.1)
             trimmed_cell = cell[marginY:-marginY, marginX:-marginX]
-
-
-
             white_area = (trimmed_cell == 255).sum()
             total_area = trimmed_cell.shape[0] * trimmed_cell.shape[1]
-            
             if white_area < 0.05 * total_area:
                 # print(white_area / total_area)
                 predictions.append(0)
